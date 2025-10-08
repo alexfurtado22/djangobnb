@@ -42,6 +42,7 @@ export default function Register() {
           type="text"
           name="username"
           placeholder="Username"
+          autoComplete="username"
           value={userData.username}
           onChange={(e) => setUserData({ ...userData, username: e.target.value })}
           className="mb-4 w-full rounded border p-2"
@@ -52,6 +53,7 @@ export default function Register() {
           type="email"
           name="email"
           placeholder="Email"
+          autoComplete="email"
           value={userData.email}
           onChange={(e) => setUserData({ ...userData, email: e.target.value })}
           className="mb-4 w-full rounded border p-2"
@@ -62,6 +64,7 @@ export default function Register() {
           type="password"
           name="password1"
           placeholder="Password"
+          autoComplete="new-password"
           value={userData.password1}
           onChange={(e) => setUserData({ ...userData, password1: e.target.value })}
           className="mb-4 w-full rounded border p-2"
@@ -72,6 +75,7 @@ export default function Register() {
           type="password"
           name="password2"
           placeholder="Confirm Password"
+          autoComplete="new-password"
           value={userData.password2}
           // FIX: Corrected the typo from 'e.gittarget' to 'e.target'
           onChange={(e) => setUserData({ ...userData, password2: e.target.value })}

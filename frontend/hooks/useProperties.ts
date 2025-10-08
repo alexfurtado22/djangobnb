@@ -12,16 +12,25 @@ type ApiParams = Record<string, any>
 // PROPERTY HOOKS
 // =============================================================================
 
+// 📋 Copy and paste this entire block into useProperties.ts
+
 export function useProperties(params: ApiParams = {}) {
   const [properties, setProperties] = useState<Property[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
 
+  // THE FIX IS HERE:
+  // We turn the params object into a simple text string.
+  // This string will only change if the filter/search options change.
+  const stableParams = JSON.stringify(params)
+
   const fetchProperties = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
-      const data = await propertyApi.getProperties(params)
+      // We turn the text string back into an object for the API call
+      const parsedParams = JSON.parse(stableParams)
+      const data = await propertyApi.getProperties(parsedParams)
       setProperties(data.results || [])
     } catch (err) {
       const errorMessage =
@@ -30,45 +39,14 @@ export function useProperties(params: ApiParams = {}) {
     } finally {
       setIsLoading(false)
     }
-  }, [params])
+    // We now depend on the stable text string, which prevents the loop.
+  }, [stableParams])
 
   useEffect(() => {
     fetchProperties()
   }, [fetchProperties])
 
   return { properties, isLoading, error, refetch: fetchProperties }
-}
-
-export function useProperty(id: number | string | undefined | null) {
-  const [property, setProperty] = useState<Property | null>(null)
-  const [isLoading, setIsLoading] = useState<boolean>(true)
-  const [error, setError] = useState<string | null>(null)
-
-  const fetchProperty = useCallback(async () => {
-    if (!id) {
-      setProperty(null)
-      setIsLoading(false)
-      return
-    }
-    try {
-      setIsLoading(true)
-      setError(null)
-      const data = await propertyApi.getProperty(id)
-      setProperty(data)
-    } catch (err) {
-      const errorMessage =
-        (axios.isAxiosError(err) && err.response?.data?.detail) || 'Failed to fetch property'
-      setError(errorMessage)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [id])
-
-  useEffect(() => {
-    fetchProperty()
-  }, [fetchProperty])
-
-  return { property, isLoading, error, refetch: fetchProperty }
 }
 
 export function usePropertyMutations() {

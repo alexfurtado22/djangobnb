@@ -43,6 +43,9 @@ const Header = () => {
     { href: '/account', label: 'My Account' },
   ] as const
 
+  // Add this state near your other useState hooks
+  const [isUserSubMenuOpen, setIsUserSubMenuOpen] = useState(false)
+
   // 3. Cleaned up handleLogout
   const handleLogout = async () => {
     await logout()
@@ -179,7 +182,9 @@ const Header = () => {
         >
           <Logo className="text-brand mb-4 h-8 w-auto" />
         </div>
+
         <div className="space-y-4">
+          {/* General links available to everyone */}
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -191,52 +196,97 @@ const Header = () => {
             </Link>
           ))}
           <div className="flex items-center gap-4 max-sm:flex-col">
-            <label
-              htmlFor="mobile-theme-switcher"
-              className="mb-2 block text-sm font-medium text-gray-700"
-            >
-              Select theme:
-            </label>
             <ThemeSwitcher id="mobile-theme-switcher" label="Select theme:" />
           </div>
-          {!isAuthenticated && (
-            <div className="space-y-3 border-t pt-4">
-              <Link
-                href="/auth/login"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block text-base font-semibold text-gray-700 hover:text-sky-600"
-              >
-                Log In
-              </Link>
-              <Link
-                href="/auth/signup"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="block w-full rounded-full bg-sky-500 px-4 py-3 text-center text-base font-semibold text-white hover:bg-sky-600"
-              >
-                Sign Up
-              </Link>
-            </div>
-          )}
-          {isAuthenticated && (
-            <div className="space-y-3 border-t pt-4">
-              {userMenuLinks.map((link) => (
+
+          {/* --- UPGRADED AUTHENTICATION SECTION --- */}
+          <div className="border-t pt-4">
+            {isAuthenticated ? (
+              <div className="space-y-2">
+                {/* Interactive Trigger */}
+                <button
+                  onClick={() => setIsUserSubMenuOpen(!isUserSubMenuOpen)}
+                  className={`focus-visible:ring-brand focus-visible:ring-offset-surface-1 flex w-full items-center justify-between rounded-md p-2 transition-all duration-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-brand flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-sm font-bold text-white transition-all duration-300 hover:scale-105">
+                      {user?.username?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium">{user?.username}</span>
+                      <span className="text-muted-foreground text-xs">{user?.email}</span>
+                    </div>
+                  </div>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className={`h-5 w-5 text-gray-400 transition-transform duration-300 ${
+                      isUserSubMenuOpen ? 'rotate-180' : 'rotate-0'
+                    }`}
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.22 8.22a.75.75 0 0 1 1.06 0L10 11.94l3.72-3.72a.75.75 0 1 1 1.06 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0L5.22 9.28a.75.75 0 0 1 0-1.06Z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+
+                {/* Animated Sub-Menu with staggered links */}
+                <div
+                  className={`overflow-hidden pl-4 transition-all duration-300 ease-in-out ${
+                    isUserSubMenuOpen ? 'max-h-96' : 'max-h-0'
+                  }`}
+                >
+                  <div className="flex flex-col space-y-2 border-l py-2 pl-6">
+                    {userMenuLinks.map((link, index) => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className={`block transform text-base font-semibold text-gray-700 transition duration-300 hover:text-sky-600 ${
+                          isUserSubMenuOpen
+                            ? 'translate-x-0 opacity-100'
+                            : '-translate-x-2 opacity-0'
+                        }`}
+                        style={{ transitionDelay: `${index * 100}ms` }}
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                    <button
+                      onClick={handleLogout}
+                      className={`block w-full transform text-left text-base font-semibold text-gray-700 transition duration-300 hover:text-sky-600 ${
+                        isUserSubMenuOpen ? 'translate-x-0 opacity-100' : '-translate-x-2 opacity-0'
+                      }`}
+                      style={{ transitionDelay: `${userMenuLinks.length * 100}ms` }}
+                    >
+                      Log Out
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // Logged-out users
+              <div className="space-y-3">
                 <Link
-                  key={link.href}
-                  href={link.href}
+                  href="/auth/login"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="block text-base font-semibold text-gray-700 hover:text-sky-600"
                 >
-                  {link.label}
+                  Log In
                 </Link>
-              ))}
-              <button
-                onClick={handleLogout}
-                className="block w-full text-left text-base font-semibold text-gray-700 hover:text-sky-600"
-              >
-                Log Out
-              </button>
-            </div>
-          )}
+                <Link
+                  href="/auth/signup"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="block w-full rounded-full bg-sky-500 px-4 py-3 text-center text-base font-semibold text-white hover:bg-sky-600"
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </header>

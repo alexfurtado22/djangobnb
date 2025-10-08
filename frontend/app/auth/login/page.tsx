@@ -42,6 +42,7 @@ export default function Login() {
           type="text"
           name="username"
           placeholder="Username"
+          autoComplete="username" // Add autocomplete here
           value={credentials.username}
           onChange={(e) => setCredentials({ ...credentials, username: e.target.value })}
           className="mb-4 w-full rounded border p-2"
@@ -53,6 +54,7 @@ export default function Login() {
           type="text"
           name="email"
           placeholder="Email"
+          autoComplete="email"
           value={credentials.email}
           onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
           className="mb-4 w-full rounded border p-2"
@@ -63,6 +65,7 @@ export default function Login() {
           type="password"
           name="password"
           placeholder="Password"
+          autoComplete="current-password"
           value={credentials.password}
           onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
           className="mb-4 w-full rounded border p-2"

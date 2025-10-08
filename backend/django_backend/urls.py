@@ -20,6 +20,7 @@ from django.urls import path, include
 from django.conf.urls.static import static
 from django.conf import settings
 from django.http import JsonResponse
+# from useraccount.views import BackendLogoutView
 
 
 def api_root(request):
@@ -48,6 +49,7 @@ urlpatterns = [
     path("api/v1/", include(api_urlpatterns)),
     # DRF browsable API login/logout
     path("api-auth/", include("rest_framework.urls")),
+    # path("api/v1/auth/logout/", BackendLogoutView.as_view(), name="backend_logout"),
 ]
 
 if settings.DEBUG:
