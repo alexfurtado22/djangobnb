@@ -1,4 +1,7 @@
-from rest_framework import viewsets, permissions
+from datetime import date
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from .models import Property, Category, Amenity, Booking, Review
 from .serializers import (
     PropertyListSerializer,
@@ -10,7 +13,6 @@ from .serializers import (
 )
 
 
-# --- Add these two new permission classes ---
 class IsOwnerOrReadOnly(permissions.BasePermission):
     """Only allows the owner of an object to edit it."""
 
@@ -29,13 +31,12 @@ class IsAuthorOrReadOnly(permissions.BasePermission):
         return obj.author == request.user
 
 
-# --- Update PropertyViewSet ---
 class PropertyViewSet(viewsets.ModelViewSet):
     queryset = Property.objects.filter(is_active=True)
     permission_classes = [
         permissions.IsAuthenticatedOrReadOnly,
         IsOwnerOrReadOnly,
-    ]  # Apply permission
+    ]
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -44,6 +45,38 @@ class PropertyViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    # --- ADD THIS ENTIRE METHOD TO YOUR PropertyViewSet ---
+    @action(detail=True, methods=["get"])
+    def check_availability(self, request, pk=None):
+        property_instance = self.get_object()
+        start_date_str = request.query_params.get("start_date")
+        end_date_str = request.query_params.get("end_date")
+
+        if not start_date_str or not end_date_str:
+            return Response(
+                {"error": "start_date and end_date are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            start_date = date.fromisoformat(start_date_str)
+            end_date = date.fromisoformat(end_date_str)
+        except ValueError:
+            return Response(
+                {"error": "Invalid date format. Use YYYY-MM-DD."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        overlapping_bookings = Booking.objects.filter(
+            property=property_instance, start_date__lt=end_date, end_date__gt=start_date
+        ).exists()
+
+        if overlapping_bookings:
+            return Response(
+                {"is_available": False, "message": "These dates are not available."}
+            )
+
+        return Response({"is_available": True, "message": "Dates are available!"})
 
 
 # --- No changes to CategoryViewSet or AmenityViewSet ---

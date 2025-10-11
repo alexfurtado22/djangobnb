@@ -59,6 +59,10 @@ class Property(models.Model):
     city = models.CharField(max_length=100)
     country = models.CharField(max_length=100)
     price_per_night = models.DecimalField(max_digits=10, decimal_places=2)
+    cleaning_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    service_fee_percent = models.PositiveIntegerField(
+        default=10, help_text="Service fee as a percentage (e.g., 10 for 10%)"
+    )
     num_guests = models.PositiveIntegerField(default=1)
     num_bedrooms = models.PositiveIntegerField(default=1)
     num_bathrooms = models.PositiveIntegerField(default=1)
@@ -114,6 +118,18 @@ class Booking(models.Model):
 
     def __str__(self):
         return f"Booking for {self.property.title} by {self.guest.username}"
+
+    # ADD THIS METHOD
+    def save(self, *args, **kwargs):
+        # Calculate the number of nights
+        if self.start_date and self.end_date and self.property:
+            nights = (self.end_date - self.start_date).days
+            if nights > 0:
+                # Calculate and set the total price
+                self.total_price = nights * self.property.price_per_night
+
+        # Call the original save method to save the object to the database
+        super().save(*args, **kwargs)
 
 
 class Review(models.Model):

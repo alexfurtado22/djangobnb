@@ -59,19 +59,36 @@ class PropertyAdmin(admin.ModelAdmin):
 # ------------------------------
 # Booking Admin
 # ------------------------------
+
+
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
+    # 1. 'total_price_display' is replaced with the actual field name 'total_price'
     list_display = (
         "property",
         "guest",
         "start_date",
         "end_date",
+        "nights",
         "total_price",
         "created_at",
     )
     list_filter = ("start_date", "end_date")
     search_fields = ("property__title", "guest__username")
     ordering = ("-created_at",)
+
+    # 2. Add this to make the total_price field non-editable in the admin form
+    readonly_fields = ("total_price",)
+
+    # Custom column for nights
+    def nights(self, obj):
+        if obj.start_date and obj.end_date:
+            return (obj.end_date - obj.start_date).days
+        return 0
+
+    nights.short_description = "Nights"
+
+    # The 'total_price_display' method is no longer needed
 
 
 # ------------------------------

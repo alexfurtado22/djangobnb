@@ -14,6 +14,7 @@
   --color-brand: oklch(64.6% 0.222 41.116);
   --color-clr-neon-pink: oklch(69.55% 0.31 331.65);
   --color-grid-dot: oklch(0.8549 0.0056 274.95);
+  --color-border: oklch(92.8% 0.006 264.531);
 }
 
 /* Dark mode fallback for auto */
@@ -29,6 +30,7 @@
     --color-shadow-strength: 0.8;
     --color-brand: oklch(83.7% 0.128 66.29);
     --color-grid-dot: oklch(37.3% 0.034 259.733);
+    --color-border: oklch(27.8% 0.033 256.848);
   }
 }
 
@@ -44,6 +46,7 @@
   --color-shadow-strength: 0.02;
   --color-brand: oklch(64.6% 0.222 41.116);
   --color-grid-dot: oklch(0.8549 0.0056 274.95);
+  --color-border: oklch(87.2% 0.01 258.338);
 }
 
 [data-theme='dark'] {
@@ -57,6 +60,7 @@
   --color-shadow-strength: 0.8;
   --color-brand: oklch(83.7% 0.128 66.29);
   --color-grid-dot: oklch(37.3% 0.034 259.733);
+  --color-border: oklch(27.8% 0.033 256.848);
 }
 
 [data-theme='lime'] {
@@ -70,6 +74,7 @@
   --color-shadow-strength: 0.8;
   --color-brand: oklch(88% 0.24 147);
   --color-grid-dot: oklch(0.4 0.08 147);
+  --color-border: oklch(25% 0.1 147);
 }
 [data-theme='blue'] {
   --color-text-1: oklch(42% 0.15 250);
@@ -82,6 +87,7 @@
   --color-shadow-strength: 0.2;
   --color-brand: oklch(62% 0.22 250);
   --color-grid-dot: oklch(70% 0.08 250);
+  --color-border: oklch(80% 0.1 250);
 }
 
 [data-theme='dim'] {
@@ -95,6 +101,7 @@
   --color-shadow-strength: 0.2;
   --color-brand: oklch(75% 0.183 55.934);
   --color-grid-dot: oklch(50% 0.01 248);
+  --color-border: oklch(64.28% 0.0152 248.06);
 }
 
 [data-theme='grape'] {
@@ -108,6 +115,7 @@
   --color-shadow-strength: 0.02;
   --color-brand: oklch(62.7% 0.265 303.9);
   --color-grid-dot: oklch(70% 0.05 305);
+  --color-border: oklch(90.2% 0.063 306.703);
 }
 
 [data-theme='choco'] {
@@ -121,6 +129,7 @@
   --color-shadow-strength: 0.2;
   --color-brand: oklch(70.12% 0.1357 53.79);
   --color-grid-dot: oklch(35.07% 0.0715 53.66);
+  --color-border: oklch(41.02% 0.0913 52.35);
 }
 
 /* Hide both by default */
@@ -257,7 +266,14 @@ body::-webkit-scrollbar-thumb {
 img {
   max-width: 100%;
 }
-
+.day-booked {
+  color: red !important;
+  font-weight: bold;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  cursor: not-allowed;
+  opacity: 1 !important;
+}
 .section {
   margin-top: 5rem;
 }
