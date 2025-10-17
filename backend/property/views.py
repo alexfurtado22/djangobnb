@@ -1,4 +1,6 @@
 from datetime import date
+from django.db.models import F
+from django.contrib.postgres.search import SearchQuery, SearchRank
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -6,11 +8,14 @@ from .models import Property, Category, Amenity, Booking, Review
 from .serializers import (
     PropertyListSerializer,
     PropertyDetailSerializer,
+    PropertyCreateSerializer,  # NEW
+    PropertyUpdateSerializer,  # NEW
     CategorySerializer,
     AmenitySerializer,
     BookingSerializer,
     ReviewSerializer,
 )
+from .pagination import SmallResultsSetPagination
 
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
@@ -32,21 +37,80 @@ class IsAuthorOrReadOnly(permissions.BasePermission):
 
 
 class PropertyViewSet(viewsets.ModelViewSet):
-    queryset = Property.objects.filter(is_active=True)
     permission_classes = [
         permissions.IsAuthenticatedOrReadOnly,
         IsOwnerOrReadOnly,
     ]
+    pagination_class = SmallResultsSetPagination
+
+    def get_queryset(self):
+        """Optimize queries for list vs detail views."""
+        base_qs = Property.objects.filter(is_active=True)
+
+        if self.action == "retrieve":
+            # For detail view: load everything in bulk
+            return base_qs.select_related(
+                "owner", "category"
+            ).prefetch_related(  # single FK relations
+                "images",  # reverse FK
+                "amenities",  # M2M
+                "reviews__author",  # reviews + user in one prefetch
+                "bookings",  # needed for booked dates
+            )
+
+        if self.action == "list":
+            # Keep it lighter: list usually doesn’t need deep prefetch
+            return base_qs.select_related("owner", "category")
+
+        return base_qs
 
     def get_serializer_class(self):
+        """Return appropriate serializer based on action."""
         if self.action == "retrieve":
             return PropertyDetailSerializer
+        if self.action == "create":
+            return PropertyCreateSerializer
+        if self.action in ["update", "partial_update"]:
+            return PropertyUpdateSerializer
         return PropertyListSerializer
 
     def perform_create(self, serializer):
+        """Set the owner when creating a property."""
         serializer.save(owner=self.request.user)
 
-    # --- ADD THIS ENTIRE METHOD TO YOUR PropertyViewSet ---
+    def perform_update(self, serializer):
+        """Ensure user owns the property before updating."""
+        property_instance = self.get_object()
+        if property_instance.owner != self.request.user:
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied(
+                "You do not have permission to update this property."
+            )
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        """Delete all related images (main + gallery) before deleting the property."""
+        if instance.owner != self.request.user:
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied(
+                "You do not have permission to delete this property."
+            )
+
+        # Delete main image
+        if instance.main_image:
+            instance.main_image.delete(save=False)
+
+        # Delete gallery images
+        for img in instance.images.all():
+            if img.image:
+                img.image.delete(save=False)
+
+        instance.images.all().delete()
+        instance.delete()
+
+    # --- Check availability for a property ---
     @action(detail=True, methods=["get"])
     def check_availability(self, request, pk=None):
         property_instance = self.get_object()
@@ -78,6 +142,26 @@ class PropertyViewSet(viewsets.ModelViewSet):
 
         return Response({"is_available": True, "message": "Dates are available!"})
 
+    # --- Full-text search for properties ---
+    @action(detail=False, methods=["get"])
+    def search(self, request):
+        query = request.query_params.get("q", None)
+
+        if not query:
+            return Response(
+                {"error": "Query parameter 'q' is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        search_query = SearchQuery(query)
+        queryset = (
+            Property.objects.annotate(rank=SearchRank(F("search_vector"), search_query))
+            .filter(search_vector=search_query, is_active=True)
+            .order_by("-rank")[:20]
+        )
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
 
 # --- No changes to CategoryViewSet or AmenityViewSet ---
 class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -102,14 +186,13 @@ class BookingViewSet(viewsets.ModelViewSet):
         serializer.save(guest=self.request.user)
 
 
-# --- Update ReviewViewSet ---
 class ReviewViewSet(viewsets.ModelViewSet):
-    queryset = Review.objects.all()
+    queryset = Review.objects.select_related("author").all()
     serializer_class = ReviewSerializer
     permission_classes = [
         permissions.IsAuthenticatedOrReadOnly,
         IsAuthorOrReadOnly,
-    ]  # Apply permission
+    ]
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)

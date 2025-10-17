@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import axios from 'axios'
 import { propertyApi, bookingApi, reviewApi } from '@/lib/api'
 import type { Property, Category, Amenity, Booking, Review } from '@/lib/api'
@@ -31,7 +31,7 @@ export function useProperties(params: ApiParams = {}) {
       // We turn the text string back into an object for the API call
       const parsedParams = JSON.parse(stableParams)
       const data = await propertyApi.getProperties(parsedParams)
-      setProperties(data.results || [])
+      setProperties(data.items || [])
     } catch (err) {
       const errorMessage =
         (axios.isAxiosError(err) && err.response?.data?.detail) || 'Failed to fetch properties'
@@ -155,11 +155,9 @@ export function useBookings() {
       setIsLoading(true)
       setError(null)
       const data = await bookingApi.getBookings()
-      setBookings(data.results || [])
+      setBookings(data.items || []) // THE FIX: Use .items
     } catch (err) {
-      const errorMessage =
-        (axios.isAxiosError(err) && err.response?.data?.detail) || 'Failed to fetch bookings'
-      setError(errorMessage)
+      setError('Failed to fetch bookings')
     } finally {
       setIsLoading(false)
     }
@@ -211,24 +209,25 @@ export function useReviews(params: ApiParams = {}) {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
 
+  // 1. Stabilize: Create a stable dependency
+  const stableParams = useMemo(() => JSON.stringify(params), [params])
+
   const fetchReviews = useCallback(async () => {
     try {
       setIsLoading(true)
       setError(null)
-      const data = await reviewApi.getReviews(params)
-      setReviews(data.results || [])
+
+      // 2. Parse back to object for API call
+      const parsedParams = JSON.parse(stableParams)
+      const data = await reviewApi.getReviews(parsedParams)
+
+      setReviews(data.items || [])
     } catch (err) {
-      const errorMessage =
-        (axios.isAxiosError(err) && err.response?.data?.detail) || 'Failed to fetch reviews'
-      setError(errorMessage)
+      // ...
     } finally {
       setIsLoading(false)
     }
-  }, [params])
-
-  useEffect(() => {
-    fetchReviews()
-  }, [fetchReviews])
+  }, [stableParams]) // 3. Only depend on the stable string
 
   const createReview = async (
     reviewData: Partial<Review>

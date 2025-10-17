@@ -2,9 +2,8 @@ import type { Metadata } from 'next'
 import { Inter, Geist_Mono } from 'next/font/google'
 import './global.css'
 import './shadcn.css'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
-import ClientProviders from '@/components/ClientProviders' // new wrapper
+import ClientProviders from '@/components/ClientProviders'
+import LayoutClient from '@/components/LayoutClient' // client wrapper
 import { APP_NAME, APP_DESCRIPTION } from '@/lib/constants'
 
 const inter = Inter({
@@ -19,8 +18,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    template: `%s | ${APP_NAME}`, // Used everywhere else
-    default: APP_NAME, // Homepage fallback
+    template: `%s | ${APP_NAME}`,
+    default: APP_NAME,
   },
   description: APP_DESCRIPTION,
 }
@@ -30,13 +29,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" data-scroll-behavior="smooth" data-theme="dark">
       <body className={`${inter.variable} ${geistMono.variable} antialiased`}>
         <ClientProviders>
-          <div className="holder grid min-h-dvh grid-rows-[auto_1fr_auto]">
-            <Header />
-            <main className="col-span-2 grid grid-cols-1 items-center justify-center">
-              {children}
-            </main>
-            <Footer />
-          </div>
+          {/* Client wrapper will decide to show Header/Footer */}
+          <LayoutClient>{children}</LayoutClient>
         </ClientProviders>
       </body>
     </html>

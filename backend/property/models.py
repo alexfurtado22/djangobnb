@@ -1,3 +1,6 @@
+from django.contrib.postgres.search import SearchVectorField
+from django.contrib.postgres.indexes import GinIndex
+
 from django.db import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -49,6 +52,8 @@ class Amenity(models.Model):
 # ------------------------------
 # Main Property model (updated)
 # ------------------------------
+
+
 class Property(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name="properties", on_delete=models.CASCADE
@@ -67,11 +72,11 @@ class Property(models.Model):
     num_bedrooms = models.PositiveIntegerField(default=1)
     num_bathrooms = models.PositiveIntegerField(default=1)
 
-    # New fields for relationships
     category = models.ForeignKey(
         Category, related_name="properties", on_delete=models.SET_NULL, null=True
     )
     amenities = models.ManyToManyField(Amenity, blank=True)
+    search_vector = SearchVectorField(null=True, editable=False)
 
     main_image = models.ImageField(
         upload_to="property_images/",
@@ -84,6 +89,10 @@ class Property(models.Model):
 
     class Meta:
         verbose_name_plural = "Properties"
+        # 2. ADD THIS INDEXES OPTION
+        indexes = [
+            GinIndex(fields=["search_vector"], name="property_search_idx"),
+        ]
 
     def __str__(self):
         return f"{self.title} ({self.city}, {self.country})"

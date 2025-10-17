@@ -1,12 +1,16 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react' // --- 1. ADDED useEffect ---
+import { useState, useMemo, useEffect } from 'react'
 import { useActionState } from 'react'
 import type { Property } from '@/lib/api'
-import { createBooking, checkAvailability } from '@/app/actions' // --- 2. ADDED checkAvailability ---
+import { createBooking, checkAvailability } from '@/app/actions'
 import { differenceInDays, format } from 'date-fns'
 import { Calendar } from '@/components/ui/calendar'
 import type { DateRange, Matcher } from 'react-day-picker'
+// --- 1. ADDED IMPORTS for authentication and navigation ---
+import { useAuth } from '@/contexts/AuthContext'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 
 export function BookingWidget({
   property,
@@ -15,34 +19,40 @@ export function BookingWidget({
   property: Property
   booked_dates?: string[]
 }) {
+  // --- 2. ADDED hooks to get authentication status ---
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth()
+  const pathname = usePathname()
+  // ----------------------------------------------------
+
   const [state, formAction, isPending] = useActionState(createBooking, {
     errors: {},
     message: '',
   })
-
   const [selectedRange, setSelectedRange] = useState<DateRange | undefined>(undefined)
   const [guests, setGuests] = useState(1)
-
-  // --- 3. ADDED state for availability check ---
   const [availability, setAvailability] = useState<{
     isAvailable: boolean
     message: string
   } | null>(null)
 
-  const nights = useMemo(() => {
+  const { nights, basePrice, serviceFee, totalPrice } = useMemo(() => {
     if (selectedRange?.from && selectedRange?.to) {
       const diff = differenceInDays(selectedRange.to, selectedRange.from)
-      return diff > 0 ? diff : 0
+      if (diff > 0) {
+        const base = diff * Number(property.price_per_night)
+        const service = base * (property.service_fee_percent / 100)
+        const total = base + Number(property.cleaning_fee) + service
+        return {
+          nights: diff,
+          basePrice: base,
+          serviceFee: service,
+          totalPrice: total,
+        }
+      }
     }
-    return 0
-  }, [selectedRange])
+    return { nights: 0, basePrice: 0, serviceFee: 0, totalPrice: 0 }
+  }, [selectedRange, property])
 
-  const totalPrice = useMemo(
-    () => nights * Number(property.price_per_night),
-    [nights, property.price_per_night]
-  )
-
-  // --- 4. ADDED availability check to isDisabled logic ---
   const isDisabled =
     !selectedRange ||
     nights === 0 ||
@@ -58,13 +68,16 @@ export function BookingWidget({
     setGuests(Math.min(Number(property.num_guests), guests + 1))
   }
 
-  const disabledDates: Matcher[] = useMemo(() => [{ before: new Date() }], [])
+  // Merged and corrected disabled dates logic
+  const disabledDates: Matcher[] = useMemo(() => {
+    const booked: Matcher[] = booked_dates.map((d) => new Date(d + 'T00:00:00'))
+    return [{ before: new Date() }, ...booked]
+  }, [booked_dates])
 
   const bookedDatesAsDates: Date[] = useMemo(() => {
     return booked_dates.map((dateStr) => new Date(dateStr + 'T00:00:00'))
   }, [booked_dates])
 
-  // --- 5. ADDED useEffect to call the checkAvailability action ---
   useEffect(() => {
     if (selectedRange?.from && selectedRange?.to) {
       setAvailability(null)
@@ -80,6 +93,36 @@ export function BookingWidget({
     }
   }, [selectedRange, property.id])
 
+  // --- 3. ADDED check for authentication loading state ---
+  // This prevents the wrong UI from flashing on screen
+  if (isAuthLoading) {
+    return (
+      <div className="rounded-xl border p-6 shadow-lg">
+        <div className="mx-auto mb-4 h-8 w-1/2 animate-pulse rounded-md bg-gray-200" />
+        <div className="mb-6 h-64 animate-pulse rounded-md bg-gray-200" />
+        <div className="h-12 w-full animate-pulse rounded-lg bg-gray-300" />
+      </div>
+    )
+  }
+  // ------------------------------------------------------
+
+  // --- 4. ADDED conditional rendering based on authentication ---
+  if (!isAuthenticated) {
+    return (
+      <div className="border-surface-2 rounded-xl border p-6 text-center shadow-lg">
+        <h3 className="mb-4 text-lg font-semibold">Log in to reserve</h3>
+        <Link
+          href={`/auth/login?redirect=${pathname}`}
+          className="block w-full rounded-lg bg-blue-500 p-3 font-bold text-white transition-colors hover:bg-blue-600"
+        >
+          Log In
+        </Link>
+      </div>
+    )
+  }
+  // ---------------------------------------------------------
+
+  // If authenticated, render the existing booking form
   return (
     <form action={formAction}>
       <input type="hidden" name="propertyId" value={property.id} />
@@ -160,21 +203,28 @@ export function BookingWidget({
 
         {nights > 0 && (
           <div className="border-surface-4 space-y-2 rounded-lg border p-3">
-            <div className="flex justify-between text-sm">
-              <span className="text-text-1">
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>
                 ${property.price_per_night} × {nights} night
                 {nights > 1 ? 's' : ''}
               </span>
-              <span className="font-medium">${totalPrice}</span>
+              <span>${basePrice.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>Cleaning fee</span>
+              <span>${Number(property.cleaning_fee).toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>Service fee</span>
+              <span>${serviceFee.toFixed(2)}</span>
             </div>
             <div className="border-t-surface-4 flex justify-between pt-2 text-lg font-bold">
               <span>Total</span>
-              <span>${totalPrice}</span>
+              <span>${totalPrice.toFixed(2)}</span>
             </div>
           </div>
         )}
 
-        {/* --- 6. ADDED UI for availability message --- */}
         {availability && (
           <p
             className={`mt-2 text-center text-sm font-semibold ${

@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { ThemeSwitcher } from '@/components/ThemeSwitcher'
+import { LiveSearch } from './LiveSearch'
 
 const Header = () => {
   const { isAuthenticated, user, logout, isLoading } = useAuth()
@@ -42,6 +43,8 @@ const Header = () => {
     { href: '/listings', label: 'My Listings' },
     { href: '/account', label: 'My Account' },
   ] as const
+
+  const filteredNavLinks = navLinks.filter((link) => link.href !== '/host/new' || isAuthenticated)
 
   // Add this state near your other useState hooks
   const [isUserSubMenuOpen, setIsUserSubMenuOpen] = useState(false)
@@ -95,7 +98,7 @@ const Header = () => {
         <Logo className="max-md:hidden" />
 
         <div className="flex items-center gap-6 max-sm:hidden">
-          {navLinks.map((link) => (
+          {filteredNavLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -166,6 +169,9 @@ const Header = () => {
           {isMobileMenuOpen ? <CloseIcon className="h-6 w-6" /> : <Hamburger className="h-6 w-6" />}
         </button>
       </nav>
+      <div className="section flex items-center justify-center max-sm:hidden">
+        <LiveSearch />
+      </div>
 
       {/* Mobile Menu */}
       <div
@@ -185,7 +191,7 @@ const Header = () => {
 
         <div className="space-y-4">
           {/* General links available to everyone */}
-          {navLinks.map((link) => (
+          {filteredNavLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}

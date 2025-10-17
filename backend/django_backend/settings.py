@@ -106,6 +106,7 @@ INSTALLED_APPS = [
     "django_filters",
     "corsheaders",
     "django_extensions",
+    "silk",
     # Allauth & dj-rest-auth
     "django.contrib.sites",
     "allauth",
@@ -119,6 +120,7 @@ if DEBUG:
     INSTALLED_APPS += ["debug_toolbar", "django_browser_reload"]
 
 MIDDLEWARE = [
+    "silk.middleware.SilkyMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",

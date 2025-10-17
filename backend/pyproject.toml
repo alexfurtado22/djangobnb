@@ -26,4 +26,5 @@ dev = [
     "django-debug-toolbar>=6.0.0",
     "python-dotenv>=1.1.1",
     "ruff>=0.13.1",
+    "django-silk>=5.4.3",
 ]

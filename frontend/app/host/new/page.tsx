@@ -1,10 +1,17 @@
-const NewListingPage = () => {
+// app/host/new/page.tsx
+import NewPropertyForm from '@/components/NewPropertyForm' // Adjust path to where your form component is
+import { propertyApi } from '@/lib/api'
+
+export default async function NewPropertyPage() {
+  // Fetch categories and amenities from Django API
+  const [categories, amenities] = await Promise.all([
+    propertyApi.getCategories(),
+    propertyApi.getAmenities(),
+  ])
+
   return (
-    <div className="mx-auto max-w-7xl px-6 py-12">
-      <h1 className="text-4xl font-bold">List Your Space</h1>
-      <p className="mt-4 text-gray-600">Create a new listing for others to book.</p>
+    <div className="container mx-auto px-4 py-8">
+      <NewPropertyForm categories={categories} amenities={amenities} />
     </div>
   )
 }
-
-export default NewListingPage
